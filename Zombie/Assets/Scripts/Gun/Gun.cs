@@ -10,76 +10,160 @@ public class Gun : MonoBehaviour {
         Reloading // 재장전 중
     }
 
-    public State state { get; private set; } // 현재 총의 상태
+    public State CurrentState { get; private set; } // 현재 총의 상태
 
-    public Transform fireTransform; // 총알이 발사될 위치
+    public Transform FireTransform; // 총알이 발사될 위치
 
-    public ParticleSystem muzzleFlashEffect; // 총구 화염 효과
-    public ParticleSystem shellEjectEffect; // 탄피 배출 효과
+    public ParticleSystem MuzzleFlashEffect; // 총구 화염 효과
+    public ParticleSystem ShellEjectEffect; // 탄피 배출 효과
 
-    private LineRenderer bulletLineRenderer; // 총알 궤적을 그리기 위한 렌더러
+    private LineRenderer _bulletLineRenderer; // 총알 궤적을 그리기 위한 렌더러
 
-    private AudioSource gunAudioPlayer; // 총 소리 재생기
-    public AudioClip shotClip; // 발사 소리
-    public AudioClip reloadClip; // 재장전 소리
+    private AudioSource _audioSource; // 총 소리 재생기
+    //public AudioClip ShotClip; // 발사 소리
+    //public AudioClip ReloadClip; // 재장전 소리
 
-    public float damage = 25; // 공격력
-    private float fireDistance = 50f; // 사정거리
+    public float Damage = 25; // 공격력
+    private float _fireDistance = 50f; // 사정거리
 
-    public int ammoRemain = 100; // 남은 전체 탄약
-    public int magCapacity = 25; // 탄창 용량
-    public int magAmmo; // 현재 탄창에 남아있는 탄약
-
-
-    public float timeBetFire = 0.12f; // 총알 발사 간격
-    public float reloadTime = 1.8f; // 재장전 소요 시간
-    private float lastFireTime; // 총을 마지막으로 발사한 시점
+    public GunData Data;
+    //public int MagazineCapacity = 25; // 탄창 용량
+    private int _remainAmmo; // 남은 전체 탄약
+    private int _ammoInMagazine; // 현재 탄창에 남아있는 탄약
 
 
-    private void Awake() {
+    //public float FireCooltime = 0.12f; // 총알 발사 간격
+    //public float ReloadTime = 1.8f; // 재장전 소요 시간
+    private float _lastFireTime; // 총을 마지막으로 발사한 시점
+
+
+    private void Awake() 
+    {
         // 사용할 컴포넌트들의 참조를 가져오기
+        _bulletLineRenderer = GetComponent<LineRenderer>();
+        _bulletLineRenderer.positionCount = 2;  // 궤적을 그릴 점 두 개
+        _bulletLineRenderer.enabled = false;    // 혹시 모르니 꺼줌
+        _audioSource = GetComponent<AudioSource>();
     }
 
-    private void OnEnable() {
+    private void OnEnable() 
+    {
         // 총 상태 초기화
+        _remainAmmo = Data.InitialAmmoCount;
+        _ammoInMagazine = Data.MagazineCapacity;
+        CurrentState = State.Ready;
+        _lastFireTime = 0f;
     }
 
     // 발사 시도
-    public void Fire() {
+    public void Fire() 
+    {
+        // 발사가 가능할 때
+        // 1. 탄알집에 총알이 있어야함
+        // 2. 쿨타임 다 찼을 때
+        if (CurrentState != State.Ready || Time.time < _lastFireTime + Data.FireCoolTime)
+        {
+            return;
+        }
 
+        _lastFireTime = Time.time;
+        shot();
     }
 
     // 실제 발사 처리
-    private void Shot() {
-        
+    private void shot() 
+    {
+        Vector3 hitPosition;
+
+        RaycastHit hit;
+
+        if (Physics.Raycast(FireTransform.position, transform.forward, out hit, _fireDistance))
+        {
+            IDamageable target = hit.collider.GetComponent<IDamageable>();
+
+            if (target != null)
+            {
+                target.OnDamage(Data.Damage, hit.point, hit.normal);
+            }
+            
+            // target?.OnDamage(Data.Damage, hit.point, hit.normal)
+
+            hitPosition = hit.point;
+        }
+        else
+        {
+            hitPosition = FireTransform.position + transform.forward * _fireDistance;
+        }
+
+        StartCoroutine(ShotEffect(hitPosition));
+
+        --_ammoInMagazine;
+        if (_ammoInMagazine <= 0)
+        {
+            CurrentState = State.Empty;
+        }
     }
 
     // 발사 이펙트와 소리를 재생하고 총알 궤적을 그린다
-    private IEnumerator ShotEffect(Vector3 hitPosition) {
+    private IEnumerator ShotEffect(Vector3 hitPosition) 
+    {
+        // 발사 이펙스
+        MuzzleFlashEffect.Play();
+        ShellEjectEffect.Play();
+
+        // 궤적을 그려줄 점 세팅
+        _bulletLineRenderer.SetPosition(0, FireTransform.position);
+        _bulletLineRenderer.SetPosition(1, hitPosition);
         // 라인 렌더러를 활성화하여 총알 궤적을 그린다
-        bulletLineRenderer.enabled = true;
+        _bulletLineRenderer.enabled = true;
+
+        _audioSource.PlayOneShot(Data.ShotClip);
+
 
         // 0.03초 동안 잠시 처리를 대기
         yield return new WaitForSeconds(0.03f);
 
         // 라인 렌더러를 비활성화하여 총알 궤적을 지운다
-        bulletLineRenderer.enabled = false;
+        _bulletLineRenderer.enabled = false;
     }
 
     // 재장전 시도
-    public bool Reload() {
-        return false;
+    public bool TryReload() 
+    {
+        // 1. 이미 재장전 중이거나
+        // 2. 탄알집에 이미 총알이 가득하거나
+        // 3. 장전할 총알이 없거나
+
+
+        // 1. 현재 총알이 비어있는 상태
+        // 2. 남은 총알이 있어야 함
+        if (CurrentState == State.Reloading || _remainAmmo <= 0 || _remainAmmo == Data.MagazineCapacity)
+        {
+            return false;
+        }
+
+        StartCoroutine(ReloadRoutine());
+
+        return true;
     }
 
     // 실제 재장전 처리를 진행
-    private IEnumerator ReloadRoutine() {
+    private IEnumerator ReloadRoutine() 
+    {
         // 현재 상태를 재장전 중 상태로 전환
-        state = State.Reloading;
-        
-        // 재장전 소요 시간 만큼 처리를 쉬기
-        yield return new WaitForSeconds(reloadTime);
+        CurrentState = State.Reloading;
 
-        // 총의 현재 상태를 발사 준비된 상태로 변경
-        state = State.Ready;
+        // 재장전 소리 재생
+        _audioSource.PlayOneShot(Data.ReloadClip);
+
+        // 재장전 소요 시간 만큼 처리를 쉬기
+        yield return new WaitForSeconds(Data.ReloadTime);
+
+        // 총알을 잘 채워야 함
+        int ammoToFill = Mathf.Min(Data.MagazineCapacity - _ammoInMagazine, _remainAmmo);
+        _ammoInMagazine += ammoToFill;
+        _remainAmmo -= ammoToFill;
+      
+        CurrentState = State.Ready;
     }
 }

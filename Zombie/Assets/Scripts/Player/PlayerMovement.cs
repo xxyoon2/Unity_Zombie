@@ -33,7 +33,7 @@ public class PlayerMovement : MonoBehaviour {
         move();
         rotate();
 
-        _animator.SetFloat(AnimID.MOVE, _input.MoveDirection);
+        _animator.SetFloat(PalyerAnimID.Move, _input.MoveDirection);
     }
 
     // 입력값에 따라 캐릭터를 앞뒤로 움직임

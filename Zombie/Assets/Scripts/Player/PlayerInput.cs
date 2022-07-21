@@ -12,8 +12,8 @@ public class PlayerInput : MonoBehaviour
     // 값 할당은 내부에서만 가능
     public float MoveDirection { get; private set; } // 감지된 움직임 입력값
     public float RotateDirection { get; private set; } // 감지된 회전 입력값
-    public bool Fire { get; private set; } // 감지된 발사 입력값
-    public bool Reload { get; private set; } // 감지된 재장전 입력값
+    public bool CanFire { get; private set; } // 감지된 발사 입력값
+    public bool CanReload { get; private set; } // 감지된 재장전 입력값
 
     // 매프레임 사용자 입력을 감지
     private void Update() {
@@ -22,8 +22,8 @@ public class PlayerInput : MonoBehaviour
         {
             MoveDirection = 0;
             RotateDirection = 0;
-            Fire = false;
-            Reload = false;
+            CanFire = false;
+            CanReload = false;
             return;
         }
 
@@ -32,8 +32,8 @@ public class PlayerInput : MonoBehaviour
         // rotate에 관한 입력 감지
         RotateDirection = Input.GetAxis(RotateAxisName);
         // fire에 관한 입력 감지
-        Fire = Input.GetButton(FireButtonName);
+        CanFire = Input.GetButton(FireButtonName);
         // reload에 관한 입력 감지
-        Reload = Input.GetButtonDown(ReloadButtonName);
+        CanReload = Input.GetButtonDown(ReloadButtonName);
     }
 }
