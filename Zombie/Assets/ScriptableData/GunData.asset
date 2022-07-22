@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2611ee66c8d2af44d9bf309ed41b8305, type: 3}
   m_Name: GunData
   m_EditorClassIdentifier: 
-  shotClip: {fileID: 0}
-  reloadClip: {fileID: 0}
-  damage: 25
-  startAmmoRemain: 100
-  magCapacity: 25
-  timeBetFire: 0.12
-  reloadTime: 1.8
+  ShotClip: {fileID: 8300000, guid: b82a66dab749415458d1f6600c997095, type: 3}
+  ReloadClip: {fileID: 8300000, guid: 9eca29ee7f8209e419470fcd586aec21, type: 3}
+  Damage: 25
+  InitialAmmoCount: 100
+  MagazineCapacity: 25
+  FireCoolTime: 0.12
+  ReloadTime: 1.8
